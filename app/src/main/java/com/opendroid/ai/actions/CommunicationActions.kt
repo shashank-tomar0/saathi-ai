@@ -61,8 +61,8 @@ private class AndroidEmailComposer : EmailComposer {
 class CommunicationActions @Inject constructor(
     private val contactResolver: ContactResolver,
     private val callFlowExecutor: CallFlowExecutor,
-    private val deviceStateProvider: dagger.Lazy<com.opendroid.ai.core.agent.DeviceStateProvider>,
-    private val agentLoop: dagger.Lazy<com.opendroid.ai.core.agent.AgentLoop>
+    private val deviceStateProvider: dagger.Lazy<com.opendroid.ai.core.agent.DeviceStateProvider>? = null,
+    private val agentLoop: dagger.Lazy<com.opendroid.ai.core.agent.AgentLoop>? = null
 ) {
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -634,16 +634,16 @@ class CommunicationActions @Inject constructor(
 
         override suspend fun execute(params: Map<String, String>, context: Context): ActionResult {
             return try {
-                val provider = deviceStateProvider.get()
-                val coords = provider.getLastCoordinates()
-                val battery = provider.getBatteryLevel()
+                val provider = deviceStateProvider?.get()
+                val coords = provider?.getLastCoordinates()
+                val battery = provider?.getBatteryLevel() ?: -1
                 val batteryStr = if (battery >= 0) "$battery" else "Unknown"
 
                 val mapsLink = if (coords != null) {
                     "https://maps.google.com/?q=${coords.first},${coords.second}"
                 } else {
-                    val locationContext = provider.getLocationContext()
-                    if (locationContext.isNotBlank() && locationContext != "Unknown" && locationContext != "Permission needed") {
+                    val locationContext = provider?.getLocationContext()
+                    if (!locationContext.isNullOrBlank() && locationContext != "Unknown" && locationContext != "Permission needed") {
                         "Location: $locationContext"
                     } else {
                         "Location unavailable"
@@ -683,7 +683,7 @@ class CommunicationActions @Inject constructor(
 
                 val spokenText = "Emergency alert has been sent to your family."
                 try {
-                    agentLoop.get().onSpeakCallback?.invoke(spokenText)
+                    agentLoop?.get()?.onSpeakCallback?.invoke(spokenText)
                 } catch (e: Exception) {
                     Log.w("EmergencySos", "TTS announcement failed: ${e.message}")
                 }
