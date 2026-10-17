@@ -511,19 +511,115 @@ class OpenDroidAccessibilityService : AccessibilityService() {
 
     fun findAndType(searchText: String, content: String): Boolean {
         val rootNode = rootInActiveWindow ?: return false
+        val searchLower = searchText.lowercase().trim()
+
+        // 1. First try matching text or hint text
         val nodes = rootNode.findAccessibilityNodeInfosByText(searchText)
         for (node in nodes) {
             if (node.isEditable) {
-                val arguments = Bundle().apply {
-                    putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, content)
-                }
-                node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments)
+                val ok = setTextOnNode(node, content)
                 node.recycle()
-                return true
+                rootNode.recycle()
+                if (ok) return true
+            } else {
+                // Check if any child of this container is editable
+                val editableChild = findEditableDescendant(node)
+                if (editableChild != null) {
+                    val ok = setTextOnNode(editableChild, content)
+                    editableChild.recycle()
+                    node.recycle()
+                    rootNode.recycle()
+                    if (ok) return true
+                }
             }
             node.recycle()
         }
+
+        // 2. Fallback: DFS walk for any editable node whose text, hint, or contentDescription matches
+        val matchingEditable = findEditableByMatch(rootNode, searchLower)
+        if (matchingEditable != null) {
+            val ok = setTextOnNode(matchingEditable, content)
+            matchingEditable.recycle()
+            rootNode.recycle()
+            return ok
+        }
+
+        // 3. Fallback for generic searches (e.g. "search", "search box", "type"):
+        // If the query is generic, type into the currently focused or first available editable field.
+        val genericTerms = setOf("search", "search box", "search bar", "type", "field", "query", "input", "")
+        if (genericTerms.contains(searchLower)) {
+            val firstEditable = findFirstEditable(rootNode)
+            if (firstEditable != null) {
+                val ok = setTextOnNode(firstEditable, content)
+                firstEditable.recycle()
+                rootNode.recycle()
+                return ok
+            }
+        }
+
+        rootNode.recycle()
         return false
+    }
+
+    private fun setTextOnNode(node: AccessibilityNodeInfo, content: String): Boolean {
+        node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
+        val arguments = Bundle().apply {
+            putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, content)
+        }
+        return node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments)
+    }
+
+    private fun findEditableDescendant(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            if (child.isEditable) return child
+            val deeper = findEditableDescendant(child)
+            if (deeper != null) {
+                child.recycle()
+                return deeper
+            }
+            child.recycle()
+        }
+        return null
+    }
+
+    private fun findEditableByMatch(node: AccessibilityNodeInfo, targetLower: String): AccessibilityNodeInfo? {
+        if (node.isEditable) {
+            val t = node.text?.toString()?.lowercase() ?: ""
+            val h = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                node.hintText?.toString()?.lowercase() ?: ""
+            } else ""
+            val cd = node.contentDescription?.toString()?.lowercase() ?: ""
+            if (t.contains(targetLower) || h.contains(targetLower) || cd.contains(targetLower)) {
+                return node
+            }
+        }
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            val match = findEditableByMatch(child, targetLower)
+            if (match != null) {
+                if (match !== child) child.recycle()
+                return match
+            }
+            child.recycle()
+        }
+        return null
+    }
+
+    private fun findFirstEditable(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+        if (node.isEditable && node.isVisibleToUser) {
+            return node
+        }
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            val match = findFirstEditable(child)
+            if (match != null) {
+                if (match !== child) child.recycle()
+                return match
+            }
+            child.recycle()
+        }
+        return null
     }
 
     fun findAndTypeById(viewId: String, content: String): Boolean {

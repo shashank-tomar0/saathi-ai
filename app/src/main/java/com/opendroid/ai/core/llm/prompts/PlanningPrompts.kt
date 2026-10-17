@@ -52,17 +52,32 @@ into a field does not submit a search on its own.
 GENUINE IN-APP AUTOMATION (only when the target app has no self-contained action):
 - Use CLICK_TEXT/CLICK_ID/TYPE_TEXT/TYPE_ID/SCROLL to interact with a freshly opened
   app's UI when no dedicated action exists for what the user wants.
-- Insert a WAIT step (params: {durationMs: "1500"}) right after OPEN_APP so the app
+- Insert a WAIT step (params: {durationMs: "2000"}) right after OPEN_APP so the app
   finishes loading before the next step looks for UI elements — CLICK_TEXT/TYPE_TEXT
-  search for an element once and fail if the app hasn't rendered it yet.
+  search for an element once and fail if the app is still cold-starting.
 - After TYPE_TEXT/TYPE_ID fills in a search box, add a PRESS_ENTER step to actually
   submit it — typing text alone does not run the search.
-  Example: "open settings and search for battery saver" (no dedicated settings-search
-  action exists) =
+- When selecting items or search results in an app, use CLICK_TEXT with the target
+  label, or generic targets like "first result", "first video", or the expected item name.
+  Example 1: "open settings and search for battery saver" =
     Step 1: OPEN_APP {appName: "Settings"}
-    Step 2: WAIT {durationMs: "1500"}
+    Step 2: WAIT {durationMs: "2000"}
     Step 3: TYPE_TEXT {searchText: "Search settings", content: "battery saver"}
     Step 4: PRESS_ENTER {}
+  Example 2: "open Play Store and search for VLC and tap on it" =
+    Step 1: OPEN_APP {appName: "Google Play Store"}
+    Step 2: WAIT {durationMs: "2500"}
+    Step 3: TYPE_TEXT {searchText: "Search apps", content: "VLC"}
+    Step 4: PRESS_ENTER {}
+    Step 5: WAIT {durationMs: "2000"}
+    Step 6: CLICK_TEXT {text: "VLC"}
+  Example 3: "open clock and set timer for 10 minutes then turn on do not disturb" =
+    Step 1: SET_TIMER {duration: "600", label: "Timer"}
+    Step 2: TOGGLE_DND {state: "on"}
+  Example 4: "check who called me last and send them a whatsapp saying I am busy" =
+    Step 1: GET_RECENT_CALLS {type: "incoming", count: "1"}
+    Step 2: SEND_WHATSAPP {contact: "$$s1", message: "I am busy, will call you back shortly."}
+      (Notice dependsOn: ["s1"] so $$s1 is dynamically replaced with the caller)
 
 Always return the structured PLAN JSON format, even if the user request can be accomplished in a single step (in which case, return a plan with a single step in the steps list). Avoid hardcoding variables when a previous step's output is required (e.g., dependsOn mapping). All parameter values in "params" must be Strings.
 
