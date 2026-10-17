@@ -157,7 +157,12 @@ class CommunicationActions @Inject constructor(
     private inner class SendWhatsAppAction : Action {
         override val name: String = "SEND_WHATSAPP"
         override suspend fun execute(params: Map<String, String>, context: Context): ActionResult {
-            val contact = params["contact"] ?: return ActionResult(false, null, "contact is missing")
+            val contact = params["contact"]
+                ?: params["recipient"]
+                ?: params["number"]
+                ?: params["phone"]
+                ?: params["phoneNumber"]
+                ?: return ActionResult(false, null, "contact or recipient parameter missing")
             val message = params["message"] ?: return ActionResult(false, null, "message is missing")
 
             return when (val resolved = contactResolver.resolveWithDisambiguation(contact)) {

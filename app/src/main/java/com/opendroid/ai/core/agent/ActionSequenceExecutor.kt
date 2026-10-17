@@ -61,12 +61,31 @@ class ActionSequenceExecutor(
         completedResults.entries
             .sortedByDescending { it.key.length }
             .fold(value) { resolved, (stepId, result) ->
+                var current = resolved
+                // 1. Resolve dotted subfields like $$stepId.subfield or $stepId.subfield
+                val dotRegex = Regex("""(?:\$\$|\$)${Regex.escape(stepId)}\.([a-zA-Z0-9_]+)""")
+                current = dotRegex.replace(current) { matchResult ->
+                    val field = matchResult.groupValues[1]
+                    extractFieldFromResult(result, field) ?: result
+                }
+                // 2. Resolve whole step references $$stepId and $stepId
                 val doubleReference = "$" + "$" + stepId
                 val singleReference = "$" + stepId
-                resolved
+                current
                     .replace(doubleReference, result)
                     .replace(singleReference, result)
             }
+    }
+
+    private fun extractFieldFromResult(result: String, field: String): String? {
+        val trimmed = result.trim()
+        if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+            val keyPattern = Regex("\"" + Regex.escape(field) + "\"\\s*:\\s*\"([^\"]*)\"")
+            keyPattern.find(trimmed)?.let { return it.groupValues[1] }
+            val numPattern = Regex("\"" + Regex.escape(field) + "\"\\s*:\\s*([0-9a-zA-Z_.-]+)")
+            numPattern.find(trimmed)?.let { return it.groupValues[1] }
+        }
+        return null
     }
 
     /** Resolves references using only completed PlanStep results. */

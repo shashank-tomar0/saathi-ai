@@ -74,12 +74,14 @@ object WhatsAppAutomator {
         }
         
         if (!sendClicked) {
-            // Fallback to clicking Send by text / content description
-            sendClicked = service.findAndClick("Send") || 
-                          service.findAndClick("send") || 
-                          service.findAndClick("SEND")
-            if (sendClicked) {
-                Log.d("WhatsAppAutomator", "Successfully clicked send button by text label")
+            // Fallback to clicking Send by text / content description (multilingual)
+            val sendLabels = listOf("Send", "send", "SEND", "भेजें", "पाठवा", "அனுப்பு", "পাঠান", "Enviar", "Envoyer")
+            for (label in sendLabels) {
+                if (service.findAndClick(label)) {
+                    sendClicked = true
+                    Log.d("WhatsAppAutomator", "Successfully clicked send button by localized label: $label")
+                    break
+                }
             }
         }
         

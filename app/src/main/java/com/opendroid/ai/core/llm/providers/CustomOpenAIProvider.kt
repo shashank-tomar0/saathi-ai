@@ -105,8 +105,10 @@ class CustomOpenAIProvider @Inject constructor(
     }
 
     override suspend fun isAvailable(): Boolean {
-        // Available if the user configured it, or fallback checks pass
-        return true
+        val config = settingsRepository.llmConfig.first()
+        val customUrl = config.customEndpoints[name]?.trim().orEmpty()
+        val apiKey = config.apiKeys[name]?.trim().orEmpty()
+        return customUrl.isNotBlank() && apiKey.isNotBlank()
     }
 
 }

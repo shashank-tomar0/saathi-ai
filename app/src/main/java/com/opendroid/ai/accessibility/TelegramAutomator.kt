@@ -78,11 +78,13 @@ object TelegramAutomator {
         }
 
         if (!sendClicked) {
-            sendClicked = service.findAndClick("Send") ||
-                          service.findAndClick("Send message") ||
-                          service.findAndClick("send")
-            if (sendClicked) {
-                Log.d(TAG, "Successfully clicked send button by text label")
+            val sendLabels = listOf("Send", "Send message", "send", "भेजें", "पाठवा", "அனுப்பு", "পাঠান", "Enviar", "Envoyer")
+            for (label in sendLabels) {
+                if (service.findAndClick(label)) {
+                    sendClicked = true
+                    Log.d(TAG, "Successfully clicked send button by localized label: $label")
+                    break
+                }
             }
         }
 

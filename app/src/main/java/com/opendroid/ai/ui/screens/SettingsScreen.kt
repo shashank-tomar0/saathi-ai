@@ -2452,8 +2452,7 @@ fun SettingsScreen(
         )
     }
 
-    if (showCellularWarningDialog != null) {
-        val modelIdToDownload = showCellularWarningDialog!!
+    showCellularWarningDialog?.let { modelIdToDownload ->
         AlertDialog(
             onDismissRequest = { showCellularWarningDialog = null },
             title = { Text("Cellular Network Warning", color = TextPrimary) },

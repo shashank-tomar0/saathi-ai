@@ -192,7 +192,8 @@ class SystemActions @Inject constructor(
         OpenBrowserAction(),
         OpenUrlAction(),
         EnablePrivateModeAction(),
-        ClearBrowserDataAction()
+        ClearBrowserDataAction(),
+        ChatAction()
     )
 
     private class ToggleWifiAction : Action {
@@ -1268,6 +1269,17 @@ class SystemActions @Inject constructor(
                 Log.e("ClearBrowserData", "Failed: ${e.localizedMessage}")
                 ActionResult(false, null, "Couldn't open browser settings.")
             }
+        }
+    }
+
+    private class ChatAction : Action {
+        override val name: String = "CHAT"
+        override suspend fun execute(params: Map<String, String>, context: Context): ActionResult {
+            val responseText = params["response"]
+                ?: params["text"]
+                ?: params["message"]
+                ?: "I understand."
+            return ActionResult(true, responseText, null)
         }
     }
 
