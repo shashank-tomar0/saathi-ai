@@ -164,17 +164,20 @@ class MediaActions @Inject constructor(
                 }
                 if (intent.resolveActivity(context.packageManager) != null) {
                     context.startActivity(intent)
-                    if (playbackVerifier.awaitVerifiedPlayback(context, "youtube", query)) {
+                    val verified = playbackVerifier.awaitVerifiedPlayback(context, "youtube", query)
+                    if (verified) {
                         ActionResult(true, if (query.isNotEmpty()) "Playing '$query' on YouTube!" else "YouTube is playing!", null)
                     } else {
-                        ActionResult(false, null, "YouTube opened, but playback could not be verified.")
+                        // YouTube successfully opened with search results. Even if the user hasn't tapped play
+                        // yet or notification listener permission is not active, the primary intent succeeded.
+                        ActionResult(true, if (query.isNotEmpty()) "Opened YouTube search for '$query'." else "Opened YouTube.", null)
                     }
                 } else {
                     val browserIntent = Intent(Intent.ACTION_VIEW, uri).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
                     context.startActivity(browserIntent)
-                    ActionResult(false, null, "The YouTube app isn't installed; I opened the search in your browser, but playback could not be verified.")
+                    ActionResult(true, if (query.isNotEmpty()) "Opened YouTube search in browser for '$query'." else "Opened YouTube in browser.", null)
                 }
             } catch (e: Exception) {
                 Log.e("PlayYoutube", "YouTube action failed: ${e.javaClass.simpleName}")

@@ -777,7 +777,7 @@ fun ChatBubble(
         ) {
             Column(
                 modifier = Modifier
-                    .widthIn(max = 290.dp)
+                    .fillMaxWidth(if (isAgent) 0.92f else 0.85f)
                     .clip(
                         RoundedCornerShape(
                             topStart = 18.dp,
