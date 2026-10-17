@@ -586,9 +586,7 @@ class OpenDroidAccessibilityService : AccessibilityService() {
     private fun findEditableByMatch(node: AccessibilityNodeInfo, targetLower: String): AccessibilityNodeInfo? {
         if (node.isEditable) {
             val t = node.text?.toString()?.lowercase() ?: ""
-            val h = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                node.hintText?.toString()?.lowercase() ?: ""
-            } else ""
+            val h = node.hintText?.toString()?.lowercase() ?: ""
             val cd = node.contentDescription?.toString()?.lowercase() ?: ""
             if (t.contains(targetLower) || h.contains(targetLower) || cd.contains(targetLower)) {
                 return node
