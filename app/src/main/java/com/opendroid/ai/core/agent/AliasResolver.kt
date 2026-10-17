@@ -241,6 +241,17 @@ object AliasResolver {
         "whats the weather"         to ActionHint("GET_WEATHER", emptyMap()),
         "what is the weather"       to ActionHint("GET_WEATHER", emptyMap()),
 
+        // ── NOTIFICATIONS ────────────────────────────────
+        "notifications"             to ActionHint("READ_NOTIFICATIONS", emptyMap()),
+        "read notifications"        to ActionHint("READ_NOTIFICATIONS", emptyMap()),
+        "show notifications"        to ActionHint("READ_NOTIFICATIONS", emptyMap()),
+        "check notifications"       to ActionHint("READ_NOTIFICATIONS", emptyMap()),
+        "latest notifications"      to ActionHint("READ_NOTIFICATIONS", emptyMap()),
+        "latest notification"       to ActionHint("READ_NOTIFICATIONS", mapOf("count" to "1")),
+        "last notification"         to ActionHint("READ_NOTIFICATIONS", mapOf("count" to "1")),
+        "show my notifications"     to ActionHint("READ_NOTIFICATIONS", emptyMap()),
+        "read my notifications"     to ActionHint("READ_NOTIFICATIONS", emptyMap()),
+
         // ── HINDI / HINGLISH ZERO-LATENCY ALIASES ───────────
         // Flashlight / Torch
         "batti jalao"        to ActionHint("TOGGLE_FLASHLIGHT", mapOf("state" to "on")),
@@ -282,7 +293,27 @@ object AliasResolver {
         "beta ko call karo" to ActionHint("MAKE_CALL", mapOf("contact" to "Beta")),
         "bete ko call karo" to ActionHint("MAKE_CALL", mapOf("contact" to "Beta")),
         "beta ko phone lagao" to ActionHint("MAKE_CALL", mapOf("contact" to "Beta")),
-        "call beta"         to ActionHint("MAKE_CALL", mapOf("contact" to "Beta"))
+        "call beta"         to ActionHint("MAKE_CALL", mapOf("contact" to "Beta")),
+
+        // ── RECENT / MISSED CALLS ────────────────────────
+        "recent calls"                      to ActionHint("GET_RECENT_CALLS", mapOf("type" to "all")),
+        "call history"                      to ActionHint("GET_RECENT_CALLS", mapOf("type" to "all")),
+        "show call history"                 to ActionHint("GET_RECENT_CALLS", mapOf("type" to "all")),
+        "missed calls"                      to ActionHint("GET_RECENT_CALLS", mapOf("type" to "missed")),
+        "show missed calls"                 to ActionHint("GET_RECENT_CALLS", mapOf("type" to "missed")),
+        "who called me"                     to ActionHint("GET_RECENT_CALLS", mapOf("type" to "incoming", "count" to "1")),
+        "who called me last"                to ActionHint("GET_RECENT_CALLS", mapOf("type" to "incoming", "count" to "1")),
+        "who called me last time"           to ActionHint("GET_RECENT_CALLS", mapOf("type" to "incoming", "count" to "1")),
+        "latest call"                       to ActionHint("GET_RECENT_CALLS", mapOf("type" to "all", "count" to "1")),
+        "last call"                         to ActionHint("GET_RECENT_CALLS", mapOf("type" to "all", "count" to "1")),
+        "last incoming call"                to ActionHint("GET_RECENT_CALLS", mapOf("type" to "incoming", "count" to "1")),
+        "latest incoming call"              to ActionHint("GET_RECENT_CALLS", mapOf("type" to "incoming", "count" to "1")),
+        "who was the last person to call me" to ActionHint("GET_RECENT_CALLS", mapOf("type" to "incoming", "count" to "1")),
+        "last person who called"            to ActionHint("GET_RECENT_CALLS", mapOf("type" to "incoming", "count" to "1")),
+        "last person who called me"         to ActionHint("GET_RECENT_CALLS", mapOf("type" to "incoming", "count" to "1")),
+        "last received call"                to ActionHint("GET_RECENT_CALLS", mapOf("type" to "incoming", "count" to "1")),
+        "who called today"                  to ActionHint("GET_RECENT_CALLS", mapOf("type" to "incoming")),
+        "outgoing calls"                    to ActionHint("GET_RECENT_CALLS", mapOf("type" to "outgoing"))
     )
 
     private val contextualOffPhrases = listOf(

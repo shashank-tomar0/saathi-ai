@@ -431,6 +431,20 @@ object ActionSchema {
             examples = listOf("read my emails", "check inbox"),
             category = ActionCategory.COMMUNICATION
         ),
+        ActionDefinition(
+            name = "GET_RECENT_CALLS",
+            description = "Reads recent call log — incoming, outgoing, or missed calls. Use this when user asks who called last, recent calls, missed calls, last received call, who called me, latest caller, etc.",
+            params = listOf(
+                ParamDefinition("type", ParamType.ENUM, false, "Filter by call type", listOf("all", "incoming", "outgoing", "missed"), "all"),
+                ParamDefinition("count", ParamType.STRING, false, "Number of entries to return", defaultValue = "5")
+            ),
+            examples = listOf(
+                "who called me last", "recent calls", "missed calls",
+                "who was the last person to call me", "latest incoming call",
+                "who called me today", "show call history", "last received call"
+            ),
+            category = ActionCategory.COMMUNICATION
+        ),
 
         // ── PRODUCTIVITY ────────────────────────────────
 

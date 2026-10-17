@@ -148,35 +148,83 @@ class AccessibilityNodeTraversal @Inject constructor() {
     }
 
     /**
-     * Finds and clicks the first actionable content item on screen
-     * (e.g. first YouTube search result, first list card, or first prominent clickable view).
+     * Finds and clicks the first actionable content item on screen — e.g. the first
+     * YouTube search-result card, the first list entry, etc.
+     *
+     * Strategy (YouTube-aware):
+     *  1. Walk the tree depth-first and collect ALL clickable nodes that have a non-empty
+     *     contentDescription (YouTube video cards expose their title there) or non-empty
+     *     text, and whose bounding-box height >= 80 px (filters out tiny toolbar icons).
+     *  2. Sort collected candidates by top-Y coordinate so the topmost item wins.
+     *  3. Skip nodes whose label exactly matches known system-chrome strings (search bar,
+     *     back button, etc.) to avoid clicking the search field instead of the first video.
+     *  4. Try each candidate in order; return true on the first successful ACTION_CLICK.
+     *     All collected nodes are recycled afterwards regardless of outcome.
      */
     fun findAndClickFirstResult(root: AccessibilityNodeInfo?): Boolean {
         if (root == null) return false
-        return findFirstContentNode(root)
+        // We store (topY, node) pairs; all nodes in this list must be recycled when done.
+        val candidates = mutableListOf<Pair<Int, AccessibilityNodeInfo>>()
+        try {
+            collectResultCandidates(root, candidates)
+            candidates.sortBy { it.first }
+            for ((_, node) in candidates) {
+                val clicked = node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                if (clicked) return true
+            }
+            return candidates.isNotEmpty()
+        } finally {
+            // Always recycle every node we collected so we don't leak accessibility objects.
+            for ((_, node) in candidates) {
+                try { node.recycle() } catch (_: Exception) {}
+            }
+        }
     }
 
-    private fun findFirstContentNode(node: AccessibilityNodeInfo): Boolean {
-        // Look for clickable containers or views with meaningful content
-        val isClickable = node.isClickable
-        val hasText = !node.text.isNullOrBlank() || !node.contentDescription.isNullOrBlank()
-        val className = node.className?.toString()?.lowercase() ?: ""
+    private val systemUiLabels = setOf(
+        "search", "back", "home", "recents", "more options", "navigate up",
+        "youtube", "settings", "account", "notifications", "cast", "voice search",
+        "clear search", "search youtube", "close", "menu", "share", "like",
+        "dislike", "subscribe", "save", "download", "report"
+    )
 
-        val isLikelyResult = isClickable && hasText &&
-            (className.contains("viewgroup") || className.contains("layout") || className.contains("view") || className.contains("card"))
+    private fun collectResultCandidates(
+        node: AccessibilityNodeInfo,
+        out: MutableList<Pair<Int, AccessibilityNodeInfo>>
+    ) {
+        if (!node.isVisibleToUser) return
 
-        if (isLikelyResult) {
-            return node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+        val contentDesc = node.contentDescription?.toString() ?: ""
+        val text = node.text?.toString() ?: ""
+        val label = contentDesc.ifEmpty { text }
+
+        if (node.isClickable && label.isNotBlank()) {
+            val bounds = android.graphics.Rect()
+            node.getBoundsInScreen(bounds)
+            val height = bounds.height()
+            val descLower = label.lowercase().trim()
+            // Skip tiny elements (icons) and known system-chrome / action-button labels.
+            val isSystemUi = systemUiLabels.any { descLower == it || descLower.startsWith("$it ") }
+            if (height >= 80 && !isSystemUi) {
+                // Keep this node — do NOT recycle it here; caller recycles after clicking.
+                out.add(Pair(bounds.top, node))
+                // Don't recurse into a matched card: its children would be duplicates.
+                return
+            }
         }
 
         for (i in 0 until node.childCount) {
             val child = node.getChild(i) ?: continue
-            if (findFirstContentNode(child)) {
-                child.recycle()
-                return true
+            val sizeBefore = out.size
+            collectResultCandidates(child, out)
+            // If the child wasn't added to `out` (and none of its descendants were either
+            // via the child reference itself), recycle it now. If it was added, the caller
+            // owns its lifecycle.
+            if (out.size == sizeBefore || out.none { it.second === child }) {
+                // Safe to recycle: child is either a non-candidate intermediate node,
+                // or its descendants (not child itself) were added.
+                try { child.recycle() } catch (_: Exception) {}
             }
-            child.recycle()
         }
-        return false
     }
 }

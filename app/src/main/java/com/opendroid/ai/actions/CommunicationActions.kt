@@ -78,7 +78,8 @@ class CommunicationActions @Inject constructor(
         MakeVideoCallAction(),
         ReadMessagesAction(),
         ReadEmailsAction(),
-        EmergencySosAction()
+        EmergencySosAction(),
+        GetRecentCallsAction()
     )
 
     companion object {
@@ -718,6 +719,91 @@ class CommunicationActions @Inject constructor(
             } catch (e: Exception) {
                 Log.e("EmergencySos", "SOS execution failed: ${e.message}", e)
                 ActionResult(false, null, "Failed to send emergency SOS: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Reads recent call log entries (incoming, outgoing, or missed).
+     * Requires READ_CALL_LOG permission (declared in AndroidManifest).
+     *
+     * Params:
+     *  - type: "all" | "incoming" | "outgoing" | "missed"  (default "all")
+     *  - count: number of entries to return (default 5)
+     */
+    private inner class GetRecentCallsAction : Action {
+        override val name: String = "GET_RECENT_CALLS"
+
+        override suspend fun execute(params: Map<String, String>, context: Context): ActionResult {
+            if (androidx.core.content.ContextCompat.checkSelfPermission(
+                    context, android.Manifest.permission.READ_CALL_LOG
+                ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                return ActionResult(false, null, "Call log permission is not granted. Please enable it in Settings.")
+            }
+
+            return try {
+                val typeParam = (params["type"] ?: "all").lowercase()
+                val count = (params["count"]?.toIntOrNull() ?: 5).coerceIn(1, 20)
+
+                val typeFilter = when (typeParam) {
+                    "incoming" -> android.provider.CallLog.Calls.INCOMING_TYPE
+                    "outgoing" -> android.provider.CallLog.Calls.OUTGOING_TYPE
+                    "missed"   -> android.provider.CallLog.Calls.MISSED_TYPE
+                    else       -> null // all types
+                }
+
+                val selection = if (typeFilter != null) "${android.provider.CallLog.Calls.TYPE} = $typeFilter" else null
+                val cursor = context.contentResolver.query(
+                    android.provider.CallLog.Calls.CONTENT_URI,
+                    arrayOf(
+                        android.provider.CallLog.Calls.CACHED_NAME,
+                        android.provider.CallLog.Calls.NUMBER,
+                        android.provider.CallLog.Calls.TYPE,
+                        android.provider.CallLog.Calls.DATE,
+                        android.provider.CallLog.Calls.DURATION
+                    ),
+                    selection,
+                    null,
+                    "${android.provider.CallLog.Calls.DATE} DESC LIMIT $count"
+                )
+
+                if (cursor == null || !cursor.moveToFirst()) {
+                    cursor?.close()
+                    return ActionResult(true, "No recent calls found.", null)
+                }
+
+                val sdf = java.text.SimpleDateFormat("MMM d, h:mm a", java.util.Locale.getDefault())
+                val sb = StringBuilder("Here are your recent calls:\n\n")
+                var index = 1
+
+                do {
+                    val name = cursor.getString(0)?.takeIf { it.isNotBlank() }
+                    val number = cursor.getString(1) ?: "Unknown"
+                    val callType = when (cursor.getInt(2)) {
+                        android.provider.CallLog.Calls.INCOMING_TYPE -> "Incoming"
+                        android.provider.CallLog.Calls.OUTGOING_TYPE -> "Outgoing"
+                        android.provider.CallLog.Calls.MISSED_TYPE   -> "Missed"
+                        else -> "Unknown"
+                    }
+                    val date = sdf.format(java.util.Date(cursor.getLong(3)))
+                    val durationSec = cursor.getLong(4)
+                    val durationStr = if (durationSec > 0) {
+                        val m = durationSec / 60; val s = durationSec % 60
+                        if (m > 0) "${m}m ${s}s" else "${s}s"
+                    } else ""
+
+                    val label = name ?: number
+                    val durationPart = if (durationStr.isNotEmpty()) " • $durationStr" else ""
+                    sb.append("$index. $callType — $label\n   $date$durationPart\n\n")
+                    index++
+                } while (cursor.moveToNext())
+
+                cursor.close()
+                ActionResult(true, sb.toString().trimEnd(), null)
+            } catch (e: Exception) {
+                Log.e("GetRecentCalls", "Call log read failed: ${e.message}", e)
+                ActionResult(false, null, "Couldn't read the call log right now.")
             }
         }
     }

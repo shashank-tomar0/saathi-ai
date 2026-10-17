@@ -33,6 +33,21 @@ object GenericAppAutomator {
         OpenDroidAccessibilityService.getInstance()?.findAndClickFirstResult() == true
     }
 
+    /**
+     * Like [clickFirstResult] but lets the caller specify a custom timeout.
+     * Used by [PlayYoutubeAction] which needs up to 8 s because YouTube takes
+     * 2-3 s to render search results after the app finishes cold-starting.
+     */
+    suspend fun clickFirstResultWithTimeout(timeoutMs: Long): Boolean {
+        val deadline = SystemClock.elapsedRealtime() + timeoutMs
+        while (true) {
+            val ok = OpenDroidAccessibilityService.getInstance()?.findAndClickFirstResult() == true
+            if (ok) return true
+            if (SystemClock.elapsedRealtime() >= deadline) return false
+            delay(RETRY_INTERVAL_MS)
+        }
+    }
+
     suspend fun clickId(viewId: String): Boolean = retryUntilTimeout {
         OpenDroidAccessibilityService.getInstance()?.findAndClickById(viewId) == true
     }

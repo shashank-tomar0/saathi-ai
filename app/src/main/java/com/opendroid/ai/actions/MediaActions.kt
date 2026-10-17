@@ -8,12 +8,14 @@ import android.provider.MediaStore
 import android.util.Log
 import android.view.KeyEvent
 import androidx.core.net.toUri
+import com.opendroid.ai.accessibility.GenericAppAutomator
 import com.opendroid.ai.actions.base.Action
 import com.opendroid.ai.actions.base.ActionResult
 import com.opendroid.ai.core.util.DeviceCapabilities
 import java.net.URLEncoder
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.delay
 
 @Singleton
 class MediaActions @Inject constructor(
@@ -162,17 +164,23 @@ class MediaActions @Inject constructor(
                     setPackage("com.google.android.youtube")
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
-                if (intent.resolveActivity(context.packageManager) != null) {
+                val youtubeInstalled = intent.resolveActivity(context.packageManager) != null
+                if (youtubeInstalled) {
                     context.startActivity(intent)
-                    val verified = playbackVerifier.awaitVerifiedPlayback(context, "youtube", query)
-                    if (verified) {
-                        ActionResult(true, if (query.isNotEmpty()) "Playing '$query' on YouTube!" else "YouTube is playing!", null)
+                    // Wait for YouTube to fully render search results before we attempt a click.
+                    // YouTube cold-start + results render typically takes 2-3 seconds.
+                    delay(3000L)
+                    // Now poll the accessibility tree for up to 8 seconds for the first video card.
+                    val clicked = GenericAppAutomator.clickFirstResultWithTimeout(8000L)
+                    if (clicked) {
+                        ActionResult(true, if (query.isNotEmpty()) "Playing first result for '$query' on YouTube!" else "YouTube is playing!", null)
                     } else {
-                        // YouTube successfully opened with search results. Even if the user hasn't tapped play
-                        // yet or notification listener permission is not active, the primary intent succeeded.
-                        ActionResult(true, if (query.isNotEmpty()) "Opened YouTube search for '$query'." else "Opened YouTube.", null)
+                        // Accessibility service not enabled or couldn't find a card yet —
+                        // the search results are open, which is still useful.
+                        ActionResult(true, if (query.isNotEmpty()) "Opened YouTube search for '$query'. Tap the first video to play." else "Opened YouTube.", null)
                     }
                 } else {
+                    // YouTube not installed — fall back to browser
                     val browserIntent = Intent(Intent.ACTION_VIEW, uri).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     }

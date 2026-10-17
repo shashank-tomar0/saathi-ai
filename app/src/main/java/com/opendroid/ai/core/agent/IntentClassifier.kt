@@ -48,7 +48,9 @@ class IntentClassifier @Inject constructor(
             "what did i save", "what did i remember",
             "social media", "social performance", "create post", "draft post",
             "social report", "create campaign", "social inbox",
-            "sos", "bachao", "emergency", "madad", "dawai", "batti", "khatra"
+            "sos", "bachao", "emergency", "madad", "dawai", "batti", "khatra",
+            "who called", "recent call", "missed call", "last call", "incoming call", "call log", "call history",
+            "notification", "notifications"
         )
         val isForcedAction = forcedActionPatterns.any { query.contains(it, ignoreCase = true) }
         if (isForcedAction) return true
@@ -145,7 +147,9 @@ class IntentClassifier @Inject constructor(
             "toggle flashlight", "toggle wifi", "toggle bluetooth", "toggle hotspot", "toggle dnd",
             "open settings", "open camera", "lock screen", "lock phone",
             "play music", "pause music", "resume music", "next song", "previous song",
-            "mute phone", "unmute phone", "set wallpaper"
+            "mute phone", "unmute phone", "set wallpaper",
+            "who called", "who called me", "recent calls", "missed calls", "last call", "last incoming call",
+            "show notifications", "read notifications", "check notifications"
         )
         if (singleIntentPatterns.any { lowercaseQuery.startsWith(it) || lowercaseQuery == it }) {
             return QueryComplexity.SIMPLE
