@@ -692,7 +692,7 @@ class CommunicationActions @Inject constructor(
                 val targetLabel = resolvedName ?: "Emergency Services (112)"
 
                 val smsResult = executeSms(dispatchTarget, targetLabel, sosMessage, context)
-                if (smsResult.isSuccess) {
+                if (smsResult.success) {
                     return ActionResult(
                         true,
                         "🚨 Emergency SOS broadcasted to $targetLabel: \"$sosMessage\". $spokenText",
@@ -702,7 +702,7 @@ class CommunicationActions @Inject constructor(
 
                 // If SMS was not direct, try WhatsApp as secondary channel
                 val waResult = executeWhatsApp(dispatchTarget, targetLabel, sosMessage, context)
-                if (waResult.isSuccess) {
+                if (waResult.success) {
                     return ActionResult(
                         true,
                         "🚨 Emergency SOS sent via WhatsApp to $targetLabel: \"$sosMessage\". $spokenText",
