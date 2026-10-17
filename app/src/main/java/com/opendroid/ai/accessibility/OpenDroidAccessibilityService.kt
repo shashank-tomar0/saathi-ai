@@ -478,6 +478,13 @@ class OpenDroidAccessibilityService : AccessibilityService() {
         return nodeTraversal.findAndClick(rootNode, text)
     }
 
+    fun findAndClickFirstResult(): Boolean {
+        val rootNode = rootInActiveWindow ?: return false
+        val result = nodeTraversal.findAndClickFirstResult(rootNode)
+        rootNode.recycle()
+        return result
+    }
+
     fun findAndClickById(viewId: String): Boolean {
         val rootNode = rootInActiveWindow ?: return false
         val nodes = rootNode.findAccessibilityNodeInfosByViewId(viewId)

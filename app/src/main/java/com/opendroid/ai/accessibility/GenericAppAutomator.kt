@@ -29,6 +29,10 @@ object GenericAppAutomator {
         OpenDroidAccessibilityService.getInstance()?.findAndClick(text) == true
     }
 
+    suspend fun clickFirstResult(): Boolean = retryUntilTimeout {
+        OpenDroidAccessibilityService.getInstance()?.findAndClickFirstResult() == true
+    }
+
     suspend fun clickId(viewId: String): Boolean = retryUntilTimeout {
         OpenDroidAccessibilityService.getInstance()?.findAndClickById(viewId) == true
     }

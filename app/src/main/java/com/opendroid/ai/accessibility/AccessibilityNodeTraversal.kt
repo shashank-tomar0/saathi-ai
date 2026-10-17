@@ -46,30 +46,75 @@ class AccessibilityNodeTraversal @Inject constructor() {
     }
 
     /**
-     * Finds the first node matching [text] (or the nearest clickable ancestor,
-     * for leaves that aren't themselves clickable) and performs ACTION_CLICK on it.
-     * Returns whether a click was dispatched.
+     * Finds the first node matching [text] (by text or contentDescription,
+     * or the nearest clickable ancestor, for leaves that aren't themselves clickable)
+     * and performs ACTION_CLICK on it. Returns whether a click was dispatched.
      */
     fun findAndClick(root: AccessibilityNodeInfo?, text: String): Boolean {
-        if (root == null) return false
+        if (root == null || text.isBlank()) return false
+
+        // 1. Primary fast-path: Android's native text lookup
         val nodes = root.findAccessibilityNodeInfosByText(text)
         for (node in nodes) {
             if (node.isClickable) {
-                node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                val ok = node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
                 node.recycle()
-                return true
+                if (ok) return true
+            } else {
+                var parent = node.parent
+                while (parent != null) {
+                    if (parent.isClickable) {
+                        val ok = parent.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                        parent.recycle()
+                        node.recycle()
+                        if (ok) return true
+                        break
+                    }
+                    val grandParent = parent.parent
+                    parent.recycle()
+                    parent = grandParent
+                }
+            }
+            node.recycle()
+        }
+
+        // 2. Secondary fallback: recursive depth-first matching checking text AND contentDescription
+        // (YouTube and media apps often place titles in contentDescription or composite accessibility labels)
+        return findAndClickRecursive(root, text.lowercase().trim())
+    }
+
+    private fun findAndClickRecursive(node: AccessibilityNodeInfo, targetLower: String): Boolean {
+        val nodeText = node.text?.toString()?.lowercase() ?: ""
+        val contentDesc = node.contentDescription?.toString()?.lowercase() ?: ""
+
+        val isMatch = (nodeText.isNotEmpty() && (nodeText.contains(targetLower) || targetLower.contains(nodeText))) ||
+            (contentDesc.isNotEmpty() && (contentDesc.contains(targetLower) || targetLower.contains(contentDesc)))
+
+        if (isMatch) {
+            if (node.isClickable) {
+                return node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
             }
             var parent = node.parent
             while (parent != null) {
                 if (parent.isClickable) {
-                    parent.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                    val clicked = parent.performAction(AccessibilityNodeInfo.ACTION_CLICK)
                     parent.recycle()
-                    node.recycle()
-                    return true
+                    if (clicked) return true
+                    break
                 }
-                parent = parent.parent
+                val grandParent = parent.parent
+                parent.recycle()
+                parent = grandParent
             }
-            node.recycle()
+        }
+
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            if (findAndClickRecursive(child, targetLower)) {
+                child.recycle()
+                return true
+            }
+            child.recycle()
         }
         return false
     }
@@ -94,6 +139,39 @@ class AccessibilityNodeTraversal @Inject constructor() {
         for (i in 0 until node.childCount) {
             val child = node.getChild(i) ?: continue
             if (findSubmitNode(child, labels)) {
+                child.recycle()
+                return true
+            }
+            child.recycle()
+        }
+        return false
+    }
+
+    /**
+     * Finds and clicks the first actionable content item on screen
+     * (e.g. first YouTube search result, first list card, or first prominent clickable view).
+     */
+    fun findAndClickFirstResult(root: AccessibilityNodeInfo?): Boolean {
+        if (root == null) return false
+        return findFirstContentNode(root)
+    }
+
+    private fun findFirstContentNode(node: AccessibilityNodeInfo): Boolean {
+        // Look for clickable containers or views with meaningful content
+        val isClickable = node.isClickable
+        val hasText = !node.text.isNullOrBlank() || !node.contentDescription.isNullOrBlank()
+        val className = node.className?.toString()?.lowercase() ?: ""
+
+        val isLikelyResult = isClickable && hasText &&
+            (className.contains("viewgroup") || className.contains("layout") || className.contains("view") || className.contains("card"))
+
+        if (isLikelyResult) {
+            return node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+        }
+
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            if (findFirstContentNode(child)) {
                 child.recycle()
                 return true
             }

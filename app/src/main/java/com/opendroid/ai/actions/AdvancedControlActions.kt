@@ -385,7 +385,15 @@ class AdvancedControlActions @Inject constructor() {
         override val name: String = "CLICK_TEXT"
         override suspend fun execute(params: Map<String, String>, context: Context): ActionResult {
             val text = params["text"] ?: return ActionResult(false, null, "text parameter is missing")
-            val success = GenericAppAutomator.clickText(text)
+            var success = GenericAppAutomator.clickText(text)
+            if (!success) {
+                // If the target text is asking for "first video", "first result", "video", or "result",
+                // fallback to clicking the first content node.
+                val lower = text.lowercase().trim()
+                if (lower.contains("first") || lower.contains("top") || lower.contains("video") || lower.contains("result")) {
+                    success = GenericAppAutomator.clickFirstResult()
+                }
+            }
             return ActionResult(success, if (success) "Tapped on '$text'!" else "Couldn't find '$text' to tap on.", null)
         }
     }
