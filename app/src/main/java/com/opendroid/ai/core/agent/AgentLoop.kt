@@ -1468,6 +1468,29 @@ class AgentLoop @Inject constructor(
 
         val paramKey = paramKeyForNeedsInput(needsInput, actionName)
         val newParams = originalParams.toMutableMap().apply { put(paramKey, answer) }
+
+        // Memory fallback: if this was a "contact not found" prompt for a communication action
+        // and the user just provided a phone number — save it so the next request resolves
+        // directly from memory (0-latency, works offline).
+        val isContactNotFoundPrompt = needsInput.metadata["param"] == "contact" &&
+            actionName.uppercase() in CONTACT_NUMBER_PROMPT_ACTIONS
+        if (isContactNotFoundPrompt) {
+            val originalContactName = originalParams["contact"]
+            val looksLikePhone = answer.replace(Regex("[+\\-\\s()]"), "").all { it.isDigit() } &&
+                answer.replace(Regex("[+\\-\\s()]"), "").length >= 7
+            if (!originalContactName.isNullOrBlank() && looksLikePhone) {
+                try {
+                    memoryManager.storeContactPreference(
+                        query = originalContactName,
+                        contact = Contact(name = originalContactName, phoneNumber = answer)
+                    )
+                    Log.d("AgentLoop", "Saved memory: '${originalContactName}' → $answer")
+                } catch (e: Exception) {
+                    Log.w("AgentLoop", "Failed to save contact memory: ${e.message}")
+                }
+            }
+        }
+
         return NeedsInputRetry(
             actionDispatcher.execute(actionName, newParams, context),
             newParams
