@@ -76,8 +76,8 @@ GENUINE IN-APP AUTOMATION (only when the target app has no self-contained action
     Step 2: TOGGLE_DND {state: "on"}
   Example 4: "check who called me last and send them a whatsapp saying I am busy" =
     Step 1: GET_RECENT_CALLS {type: "incoming", count: "1"}
-    Step 2: SEND_WHATSAPP {contact: "$$s1", message: "I am busy, will call you back shortly."}
-      (Notice dependsOn: ["s1"] so $$s1 is dynamically replaced with the caller)
+    Step 2: SEND_WHATSAPP {contact: "${'$'}${'$'}s1", message: "I am busy, will call you back shortly."}
+      (Notice dependsOn: ["s1"] so ${'$'}${'$'}s1 is dynamically replaced with the caller)
 
 Always return the structured PLAN JSON format, even if the user request can be accomplished in a single step (in which case, return a plan with a single step in the steps list). Avoid hardcoding variables when a previous step's output is required (e.g., dependsOn mapping). All parameter values in "params" must be Strings.
 
