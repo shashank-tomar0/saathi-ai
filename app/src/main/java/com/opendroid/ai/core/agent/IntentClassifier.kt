@@ -47,7 +47,8 @@ class IntentClassifier @Inject constructor(
             "read screen", "remember this", "save this", "save to notes", "read notes", "my notes",
             "what did i save", "what did i remember",
             "social media", "social performance", "create post", "draft post",
-            "social report", "create campaign", "social inbox"
+            "social report", "create campaign", "social inbox",
+            "sos", "bachao", "emergency", "madad", "dawai", "batti", "khatra"
         )
         val isForcedAction = forcedActionPatterns.any { query.contains(it, ignoreCase = true) }
         if (isForcedAction) return true

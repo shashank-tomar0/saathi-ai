@@ -401,6 +401,16 @@ object ActionSchema {
             category = ActionCategory.COMMUNICATION
         ),
         ActionDefinition(
+            name = "EMERGENCY_SOS",
+            description = "Triggers an emergency distress alert. Fetches GPS coordinates and battery level, broadcasts an urgent help message with Google Maps link to emergency/family contact via SMS or WhatsApp, and speaks audible confirmation.",
+            params = listOf(
+                ParamDefinition("contact", ParamType.STRING, false, "Emergency contact name or phone number", defaultValue = "Emergency")
+            ),
+            examples = listOf("emergency", "sos", "bachao", "emergency madad", "help me"),
+            category = ActionCategory.COMMUNICATION,
+            isSimple = true
+        ),
+        ActionDefinition(
             name = "READ_MESSAGES",
             description = "Reads recent messages from an app",
             params = listOf(

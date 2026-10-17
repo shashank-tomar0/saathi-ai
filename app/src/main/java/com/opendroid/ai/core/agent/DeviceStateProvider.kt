@@ -287,6 +287,51 @@ class DeviceStateProvider @Inject constructor(
         }
     }
 
+    fun getLastCoordinates(): Pair<Double, Double>? {
+        return try {
+            val hasFineLocation = ContextCompat.checkSelfPermission(
+                context, Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+
+            val hasCoarseLocation = ContextCompat.checkSelfPermission(
+                context, Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+
+            if (!hasFineLocation && !hasCoarseLocation) {
+                return null
+            }
+
+            val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+            val isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+            val isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+
+            if (!isGPSEnabled && !isNetworkEnabled) {
+                return null
+            }
+
+            val networkLocation = if (isNetworkEnabled) {
+                locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+            } else null
+
+            val gpsLocation = if (hasFineLocation && isGPSEnabled) {
+                locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+            } else null
+
+            val location = when {
+                networkLocation != null && gpsLocation != null -> {
+                    if (networkLocation.time > gpsLocation.time) networkLocation else gpsLocation
+                }
+                networkLocation != null -> networkLocation
+                else -> gpsLocation
+            }
+
+            location?.let { Pair(it.latitude, it.longitude) }
+        } catch (e: Exception) {
+            Log.e(TAG, "getLastCoordinates failed: ${e.message}")
+            null
+        }
+    }
+
     // Keep old method name for backward compatibility
     fun getLocation(): String = getLocationContext()
 

@@ -239,7 +239,50 @@ object AliasResolver {
         "weather today"             to ActionHint("GET_WEATHER", emptyMap()),
         "what's the weather"        to ActionHint("GET_WEATHER", emptyMap()),
         "whats the weather"         to ActionHint("GET_WEATHER", emptyMap()),
-        "what is the weather"       to ActionHint("GET_WEATHER", emptyMap())
+        "what is the weather"       to ActionHint("GET_WEATHER", emptyMap()),
+
+        // ── HINDI / HINGLISH ZERO-LATENCY ALIASES ───────────
+        // Flashlight / Torch
+        "batti jalao"        to ActionHint("TOGGLE_FLASHLIGHT", mapOf("state" to "on")),
+        "batti jala do"     to ActionHint("TOGGLE_FLASHLIGHT", mapOf("state" to "on")),
+        "batti on karo"     to ActionHint("TOGGLE_FLASHLIGHT", mapOf("state" to "on")),
+        "torch jalao"       to ActionHint("TOGGLE_FLASHLIGHT", mapOf("state" to "on")),
+        "torch jala do"     to ActionHint("TOGGLE_FLASHLIGHT", mapOf("state" to "on")),
+        "light jalao"       to ActionHint("TOGGLE_FLASHLIGHT", mapOf("state" to "on")),
+        "light jala do"     to ActionHint("TOGGLE_FLASHLIGHT", mapOf("state" to "on")),
+        "batti bujhao"      to ActionHint("TOGGLE_FLASHLIGHT", mapOf("state" to "off")),
+        "batti band karo"   to ActionHint("TOGGLE_FLASHLIGHT", mapOf("state" to "off")),
+        "batti band kar do" to ActionHint("TOGGLE_FLASHLIGHT", mapOf("state" to "off")),
+        "torch band karo"   to ActionHint("TOGGLE_FLASHLIGHT", mapOf("state" to "off")),
+        "torch band kar do" to ActionHint("TOGGLE_FLASHLIGHT", mapOf("state" to "off")),
+        "light band karo"   to ActionHint("TOGGLE_FLASHLIGHT", mapOf("state" to "off")),
+
+        // Dawai / Medicine Reminder & Alarms
+        "dawai ka reminder"     to ActionHint("SET_ALARM", mapOf("time" to "08:00", "label" to "Dawai Reminder")),
+        "dawai ka alarm"        to ActionHint("SET_ALARM", mapOf("time" to "08:00", "label" to "Dawai Reminder")),
+        "dawa ka reminder"      to ActionHint("SET_ALARM", mapOf("time" to "08:00", "label" to "Dawai Reminder")),
+        "medicine alarm"        to ActionHint("SET_ALARM", mapOf("time" to "08:00", "label" to "Medicine Reminder")),
+        "medicine reminder"     to ActionHint("SET_ALARM", mapOf("time" to "08:00", "label" to "Medicine Reminder")),
+        "dawai khane ka time"   to ActionHint("SET_ALARM", mapOf("time" to "08:00", "label" to "Dawai Reminder")),
+
+        // Emergency SOS / Madad / Bachao
+        "bachao"            to ActionHint("EMERGENCY_SOS", emptyMap()),
+        "emergency"         to ActionHint("EMERGENCY_SOS", emptyMap()),
+        "emergency madad"   to ActionHint("EMERGENCY_SOS", emptyMap()),
+        "madad karo"        to ActionHint("EMERGENCY_SOS", emptyMap()),
+        "mujhe madad chahiye" to ActionHint("EMERGENCY_SOS", emptyMap()),
+        "sos"               to ActionHint("EMERGENCY_SOS", emptyMap()),
+        "khatra"            to ActionHint("EMERGENCY_SOS", emptyMap()),
+        "help me"           to ActionHint("EMERGENCY_SOS", emptyMap()),
+
+        // Family Calls ("Beta", "Ghar")
+        "ghar phone lagao"  to ActionHint("MAKE_CALL", mapOf("contact" to "Home")),
+        "ghar par phone karo" to ActionHint("MAKE_CALL", mapOf("contact" to "Home")),
+        "ghar call karo"    to ActionHint("MAKE_CALL", mapOf("contact" to "Home")),
+        "beta ko call karo" to ActionHint("MAKE_CALL", mapOf("contact" to "Beta")),
+        "bete ko call karo" to ActionHint("MAKE_CALL", mapOf("contact" to "Beta")),
+        "beta ko phone lagao" to ActionHint("MAKE_CALL", mapOf("contact" to "Beta")),
+        "call beta"         to ActionHint("MAKE_CALL", mapOf("contact" to "Beta"))
     )
 
     private val contextualOffPhrases = listOf(

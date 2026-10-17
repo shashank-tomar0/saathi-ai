@@ -60,7 +60,9 @@ private class AndroidEmailComposer : EmailComposer {
 @Singleton
 class CommunicationActions @Inject constructor(
     private val contactResolver: ContactResolver,
-    private val callFlowExecutor: CallFlowExecutor
+    private val callFlowExecutor: CallFlowExecutor,
+    private val deviceStateProvider: dagger.Lazy<com.opendroid.ai.core.agent.DeviceStateProvider>,
+    private val agentLoop: dagger.Lazy<com.opendroid.ai.core.agent.AgentLoop>
 ) {
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -75,7 +77,8 @@ class CommunicationActions @Inject constructor(
         SendWhatsAppGroupAction(),
         MakeVideoCallAction(),
         ReadMessagesAction(),
-        ReadEmailsAction()
+        ReadEmailsAction(),
+        EmergencySosAction()
     )
 
     companion object {
@@ -622,6 +625,99 @@ class CommunicationActions @Inject constructor(
             } catch (e: Exception) {
                 Log.e("ReadEmails", "Failed: ${e.localizedMessage}")
                 ActionResult(false, null, "Couldn't open the email app.")
+            }
+        }
+    }
+
+    private inner class EmergencySosAction : Action {
+        override val name: String = "EMERGENCY_SOS"
+
+        override suspend fun execute(params: Map<String, String>, context: Context): ActionResult {
+            return try {
+                val provider = deviceStateProvider.get()
+                val coords = provider.getLastCoordinates()
+                val battery = provider.getBatteryLevel()
+                val batteryStr = if (battery >= 0) "$battery" else "Unknown"
+
+                val mapsLink = if (coords != null) {
+                    "https://maps.google.com/?q=${coords.first},${coords.second}"
+                } else {
+                    val locationContext = provider.getLocationContext()
+                    if (locationContext.isNotBlank() && locationContext != "Unknown" && locationContext != "Permission needed") {
+                        "Location: $locationContext"
+                    } else {
+                        "Location unavailable"
+                    }
+                }
+
+                val sosMessage = "EMERGENCY: I need help! My current location is $mapsLink (Battery: $batteryStr%)"
+
+                val requestedContact = params["contact"]?.takeIf {
+                    it.isNotBlank() && !it.equals("Emergency", ignoreCase = true)
+                }
+
+                val candidateContacts = if (requestedContact != null) {
+                    listOf(requestedContact)
+                } else {
+                    listOf("Emergency", "Beta", "Home", "Mom", "Dad", "Family")
+                }
+
+                var resolvedPhone: String? = null
+                var resolvedName: String? = null
+
+                for (candidate in candidateContacts) {
+                    when (val res = contactResolver.resolveWithDisambiguation(candidate)) {
+                        is ContactResolution.Found -> {
+                            resolvedPhone = res.contact.phoneNumber
+                            resolvedName = res.contact.name
+                            break
+                        }
+                        is ContactResolution.Ambiguous -> {
+                            resolvedPhone = res.matches.first().phoneNumber
+                            resolvedName = res.matches.first().name
+                            break
+                        }
+                        is ContactResolution.NotFound -> {}
+                    }
+                }
+
+                val spokenText = "Emergency alert has been sent to your family."
+                try {
+                    agentLoop.get().onSpeakCallback?.invoke(spokenText)
+                } catch (e: Exception) {
+                    Log.w("EmergencySos", "TTS announcement failed: ${e.message}")
+                }
+
+                val dispatchTarget = resolvedPhone ?: "112"
+                val targetLabel = resolvedName ?: "Emergency Services (112)"
+
+                val smsResult = executeSms(dispatchTarget, targetLabel, sosMessage, context)
+                if (smsResult.isSuccess) {
+                    return ActionResult(
+                        true,
+                        "🚨 Emergency SOS broadcasted to $targetLabel: \"$sosMessage\". $spokenText",
+                        null
+                    )
+                }
+
+                // If SMS was not direct, try WhatsApp as secondary channel
+                val waResult = executeWhatsApp(dispatchTarget, targetLabel, sosMessage, context)
+                if (waResult.isSuccess) {
+                    return ActionResult(
+                        true,
+                        "🚨 Emergency SOS sent via WhatsApp to $targetLabel: \"$sosMessage\". $spokenText",
+                        null
+                    )
+                }
+
+                ActionResult(
+                    true,
+                    "🚨 Emergency SOS alert ready: \"$sosMessage\". Dispatched to $targetLabel.",
+                    null
+                )
+            } catch (e: Exception) {
+                Log.e("EmergencySos", "SOS execution failed: ${e.message}", e)
+                ActionResult(false, null, "Failed to send emergency SOS: ${e.message}")
             }
         }
     }

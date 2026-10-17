@@ -202,4 +202,64 @@ class AliasResolverTest {
         assertEquals("friday meeting", AliasResolver.extractRecallQuery("what did i save about friday meeting"))
         assertEquals("doctor appointment", AliasResolver.extractRecallQuery("what do you remember about doctor appointment?"))
     }
+
+    // ── Hindi / Hinglish Aliases ────────────────────────────────────────
+
+    @Test
+    fun `hindi flashlight aliases map to TOGGLE_FLASHLIGHT`() {
+        val onHint1 = AliasResolver.resolve("batti jalao")
+        assertNotNull(onHint1)
+        assertEquals("TOGGLE_FLASHLIGHT", onHint1!!.action)
+        assertEquals("on", onHint1.baseParams["state"])
+
+        val onHint2 = AliasResolver.resolve("torch jala do")
+        assertNotNull(onHint2)
+        assertEquals("TOGGLE_FLASHLIGHT", onHint2!!.action)
+        assertEquals("on", onHint2.baseParams["state"])
+
+        val offHint = AliasResolver.resolve("batti band karo")
+        assertNotNull(offHint)
+        assertEquals("TOGGLE_FLASHLIGHT", offHint!!.action)
+        assertEquals("off", offHint.baseParams["state"])
+    }
+
+    @Test
+    fun `hindi medicine and reminder aliases map to SET_ALARM`() {
+        val medHint = AliasResolver.resolve("dawai ka reminder")
+        assertNotNull(medHint)
+        assertEquals("SET_ALARM", medHint!!.action)
+        assertEquals("08:00", medHint.baseParams["time"])
+
+        val alarmHint = AliasResolver.resolve("medicine alarm")
+        assertNotNull(alarmHint)
+        assertEquals("SET_ALARM", alarmHint!!.action)
+    }
+
+    @Test
+    fun `hindi emergency and bachao aliases map to EMERGENCY_SOS`() {
+        val sosHint1 = AliasResolver.resolve("bachao")
+        assertNotNull(sosHint1)
+        assertEquals("EMERGENCY_SOS", sosHint1!!.action)
+
+        val sosHint2 = AliasResolver.resolve("emergency madad")
+        assertNotNull(sosHint2)
+        assertEquals("EMERGENCY_SOS", sosHint2!!.action)
+
+        val sosHint3 = AliasResolver.resolve("madad karo")
+        assertNotNull(sosHint3)
+        assertEquals("EMERGENCY_SOS", sosHint3!!.action)
+    }
+
+    @Test
+    fun `hindi family call aliases map to MAKE_CALL`() {
+        val callHome = AliasResolver.resolve("ghar phone lagao")
+        assertNotNull(callHome)
+        assertEquals("MAKE_CALL", callHome!!.action)
+        assertEquals("Home", callHome.baseParams["contact"])
+
+        val callBeta = AliasResolver.resolve("beta ko call karo")
+        assertNotNull(callBeta)
+        assertEquals("MAKE_CALL", callBeta!!.action)
+        assertEquals("Beta", callBeta.baseParams["contact"])
+    }
 }
